@@ -17,6 +17,14 @@ export const env = {
     apiKey: read("AI_API_KEY"),
     model: read("AI_MODEL") || "gpt-4o-mini",
   },
+  partners: {
+    // Optional sandbox personal account emails for the demo partners, in partner order.
+    // Partners without one fall back to an @example.com address.
+    paypalEmails: read("PARTNER_PAYPAL_EMAILS")
+      .split(",")
+      .map((email) => email.trim())
+      .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)),
+  },
 };
 
 /** True when PayPal sandbox credentials are present. Otherwise PayPal calls are mocked. */

@@ -38,8 +38,11 @@ src/
       ai/route.ts             AI endpoint
       paypal/orders/route.ts  create a PayPal order
       paypal/return/route.ts  PayPal redirects here, payment is captured
+  data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
+    domain.ts                 shared domain types (money in integer cents)
+    store.ts                  in-memory demo store on globalThis, resetScenario()
     paypal.ts                 PayPal REST client (sandbox)
     ai.ts                     OpenAI-compatible chat client
     rate-limit.ts             per-IP rate limiting for public API routes
