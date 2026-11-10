@@ -43,7 +43,7 @@ When the script was written, PayPal's developer docs were not reachable, so the 
 | Date | Case | Result | Notes |
 | --- | --- | --- | --- |
 | 2026-11-10 | scope | OK | The OAuth token includes the `payouts` scope, so Payouts is enabled for this sandbox app |
-| | paypal | pending | Waiting for a sandbox personal account to send to |
+| 2026-11-10 | paypal | OK | Batch `B5A26FAJKG288` sent $1.00 to a sandbox personal account and went from `PENDING` to `SUCCESS` within 120 s. The item ended `SUCCESS` |
 | 2026-11-10 | unclaimed | OK | Batch `W7ZHXM7557ASA` went from `PENDING` to `SUCCESS` within 90 s. The item ended `UNCLAIMED` with error `RECEIVER_UNREGISTERED`, and PayPal said the funds return after 30 days |
 | | venmo | not run | Not needed for this project |
 
