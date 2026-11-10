@@ -84,6 +84,26 @@ describe("Yagi fixture integrity", () => {
     }
   });
 
+  it("crosses the 150 mm rule in Quang Ninh and Hai Phong at 48 h, but in Thai Binh only at 24 h", () => {
+    // The demo story and the rules engine (#6) rely on this split; change both together.
+    const rule = yagi.rules[0];
+    const crossesAt = (provinceId: string) =>
+      yagi.forecast
+        .filter((f) => f.provinceId === provinceId && f.metric === rule.metric && f.value >= rule.threshold)
+        .map((f) => f.leadHours)
+        .sort((a, b) => b - a);
+
+    expect(crossesAt("quang-ninh")).toEqual([48, 24]);
+    expect(crossesAt("hai-phong")).toEqual([48, 24]);
+    expect(crossesAt("thai-binh")).toEqual([24]);
+    expect(rule.maxLeadHours).toBe(48);
+  });
+
+  it("names every province literally in the bulletins, so quotes can be checked (#11)", () => {
+    const allText = yagi.bulletins.map((b) => b.text).join("\n");
+    for (const p of yagi.provinces) expect(allText, p.nameVi).toContain(p.nameVi);
+  });
+
   it("ships a locked rule that references real provinces", () => {
     const provinceIds = new Set(yagi.provinces.map((p) => p.id));
     for (const r of yagi.rules) {
@@ -106,17 +126,57 @@ describe("store", () => {
     ]);
   });
 
-  it("assigns PARTNER_PAYPAL_EMAILS in partner order and skips invalid entries", async () => {
+  it("assigns PARTNER_PAYPAL_EMAILS in partner order, and an invalid entry keeps its slot", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { resetScenario } = await importWithEnv<StoreModule>("@/lib/store", {
-      PARTNER_PAYPAL_EMAILS: " a@sandbox.test , not-an-email, b@sandbox.test",
+      PARTNER_PAYPAL_EMAILS: " a@sandbox.test , not-an-email, c@sandbox.test",
     });
     const state = resetScenario();
 
-    expect(state.partners.map((p) => p.paypalEmail)).toEqual([
-      "a@sandbox.test",
-      "b@sandbox.test",
-      "partner-tb@example.com",
+    // The bad middle entry must not shift c@ onto the Hai Phong partner.
+    expect(state.partners.map((p) => [p.id, p.paypalEmail])).toEqual([
+      ["partner-qn", "a@sandbox.test"],
+      ["partner-hp", "partner-hp@example.com"],
+      ["partner-tb", "c@sandbox.test"],
     ]);
+    expect(warn).toHaveBeenCalledWith("PARTNER_PAYPAL_EMAILS: 1 invalid entry ignored");
+    expect(JSON.stringify(warn.mock.calls)).not.toContain("not-an-email");
+    warn.mockRestore();
+  });
+
+  it("empties runtime state on reset", async () => {
+    const { getStore, resetScenario } = await importWithEnv<StoreModule>("@/lib/store", {});
+    resetScenario();
+    const s = getStore();
+    s.plans.push({ id: "plan-x" } as never);
+    s.confirmations.push({ id: "conf-x" } as never);
+    s.callbackChecks.push({ id: "cb-x" } as never);
+    s.bulletinReadings.push({ bulletinId: "b" } as never);
+
+    const fresh = resetScenario();
+    expect([fresh.plans, fresh.confirmations, fresh.callbackChecks, fresh.bulletinReadings]).toEqual([[], [], [], []]);
+  });
+
+  it("loads every fixture collection, each from one source", async () => {
+    const { resetScenario } = await importWithEnv<StoreModule>("@/lib/store", {});
+    const state = resetScenario();
+
+    expect(state).toMatchObject({ scenarioId: "yagi-2024", scenarioName: yagi.name, startsAt: yagi.startsAt });
+    expect(state.forecast).toEqual(yagi.forecast);
+    expect(state.bulletins).toEqual(yagi.bulletins);
+    expect(state).not.toHaveProperty("scenario");
+  });
+
+  it("masks phones and hides receipt codes in the public household shape", async () => {
+    const { maskPhone, resetScenario, toPublicHousehold } = await importWithEnv<StoreModule>("@/lib/store", {});
+    const household = resetScenario().households.find((h) => h.id === "hh-qn-04")!;
+    const shown = toPublicHousehold(household);
+
+    expect(shown.phoneMasked).toBe("+84 *** *** 104");
+    expect(shown).not.toHaveProperty("phone");
+    expect(shown).not.toHaveProperty("receiptCode");
+    expect(JSON.stringify(shown)).not.toContain(household.receiptCode);
+    expect(maskPhone("12")).toBe("***");
   });
 
   it("gives partners long, distinct tokens that change on every reset", async () => {

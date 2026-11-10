@@ -80,6 +80,12 @@ export type Partner = {
   accessToken: string;
 };
 
+/** A partner as written in a fixture. The store adds the email and token at runtime. */
+export type PartnerSeed = Omit<Partner, "paypalEmail" | "accessToken">;
+
+/** What API responses may show about a partner: no token, no email. */
+export type PublicPartner = PartnerSeed;
+
 /** A registered household. All fixture households are fictional. */
 export type Household = {
   id: string;
@@ -95,6 +101,12 @@ export type Household = {
   receiptCode: string;
 };
 
+/**
+ * What API responses may show about a household: the phone is masked (e.g. "+84 *** *** 104")
+ * and the receipt code is left out, because only the household should know it.
+ */
+export type PublicHousehold = Omit<Household, "phone" | "receiptCode"> & { phoneMasked: string };
+
 /** Static, versioned fixture data. Runtime state lives in src/lib/store.ts. */
 export type Scenario = {
   id: ScenarioId;
@@ -103,7 +115,7 @@ export type Scenario = {
   /** Simulated "now" when the replay starts. */
   startsAt: string;
   provinces: Province[];
-  partners: Omit<Partner, "paypalEmail" | "accessToken">[];
+  partners: PartnerSeed[];
   households: Household[];
   forecast: ForecastPoint[];
   bulletins: Bulletin[];
