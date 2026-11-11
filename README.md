@@ -24,6 +24,7 @@ The product idea is not public yet. This repository currently holds the foundati
 | Model / AI service | Where it is used | Why |
 | --- | --- | --- |
 | Any OpenAI-compatible model, set by `AI_MODEL` | `src/lib/ai.ts`, `src/app/api/ai/route.ts` | Chat completions behind a server-side route |
+| Same model, structured output | `chatJson` in `src/lib/ai.ts` | Every AI feature gets JSON checked by a hand-written validator, with one retry and a template fallback. Outside text is wrapped as data so instructions inside it are ignored |
 
 ## Architecture
 
