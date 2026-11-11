@@ -18,6 +18,7 @@ The product idea is not public yet. This repository currently holds the foundati
 | --- | --- | --- |
 | OAuth 2.0 client credentials | `src/lib/paypal.ts` | Server-side access token |
 | Orders API v2 (sandbox) | `src/lib/paypal.ts` | Create and capture payments |
+| Payouts v1 (sandbox) | `src/lib/paypal.ts` (`createPayoutBatch`, `getPayoutBatch`) | Send one batch per approved plan, one item per partner, and read each item's status. The plan ID is the `sender_batch_id`, so a retry cannot pay twice |
 
 ## How AI is used
 
