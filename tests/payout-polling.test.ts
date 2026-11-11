@@ -1,12 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PayoutItemStatus } from "@/lib/domain";
 import { importWithEnv, queueFetch } from "./helpers";
-import { AUTH, batchBody, setupPayout } from "./payout-helpers";
+import { AUTH, batchBody, setupPayout, WEBHOOK_KEYS } from "./payout-helpers";
 
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/server")>()), connection: async () => {},
 }));
 beforeEach(() => { vi.spyOn(console, "error").mockImplementation(() => {}); });
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+/** Holds the first batch read open and tracks overlap; later reads see the supplied current state. */
+function holdFirstBatch(nextBatch: ReturnType<typeof batchBody>) {
+  const first = Promise.withResolvers<Response>();
+  const started = Promise.withResolvers<void>();
+  let reads = 0;
+  let active = 0;
+  let maxActive = 0;
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("/v1/oauth2/token")) return Response.json(AUTH.body);
+    active++;
+    maxActive = Math.max(maxActive, active);
+    try {
+      if (reads++ === 0) { started.resolve(); return await first.promise; }
+      return Response.json(nextBatch);
+    } finally {
+      active--;
+    }
+  }));
+  return { first, started: started.promise, stats: () => ({ reads, maxActive }) };
+}
 
 describe("payout polling", () => {
   it("settles using polling alone in mock mode, then stops calling PayPal", async () => {
@@ -34,22 +56,79 @@ describe("payout polling", () => {
     expect((await plans.refreshPayoutStatus(plan.id)).status).toBe("paid");
     expect(fetchMock).not.toHaveBeenCalled();
   });
-  it("preserves SUCCESS when concurrent reads finish in reverse order", async () => {
+  it("serializes concurrent reads for the same plan and settles the latest state", async () => {
     const { plans, store, plan } = await setupPayout();
-    const gates: ReturnType<typeof Promise.withResolvers<Response>>[] = [];
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
-      if (url.endsWith("/v1/oauth2/token")) return Response.json(AUTH.body);
-      const gate = Promise.withResolvers<Response>(); gates.push(gate); return gate.promise;
-    }));
+    const held = holdFirstBatch(batchBody(plan));
     const early = plans.refreshPayoutStatus(plan.id);
-    await vi.waitFor(() => expect(gates).toHaveLength(1));
+    await held.started;
     const late = plans.refreshPayoutStatus(plan.id);
-    await vi.waitFor(() => expect(gates).toHaveLength(2));
-    gates[1].resolve(Response.json(batchBody(plan)));
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    held.first.resolve(Response.json(batchBody(plan, ["PENDING", "PENDING", "PENDING"], "PROCESSING")));
+    expect((await early).status).toBe("payout_pending");
     expect((await late).status).toBe("paid");
-    gates[0].resolve(Response.json(batchBody(plan, ["PENDING", "PENDING", "PENDING"], "PROCESSING")));
-    expect((await early).status).toBe("paid");
+    expect(held.stats()).toEqual({ reads: 2, maxActive: 1 });
     expect(store.getStore().plans[0].items.every((item) => item.payoutStatus === "SUCCESS")).toBe(true);
+  });
+  it.each([
+    { name: "refunded item", currentStatus: "SUCCESS", currentItems: ["REFUNDED", "SUCCESS", "SUCCESS"],
+      earlierStatus: "SUCCESS", earlierItems: ["SUCCESS", "SUCCESS", "SUCCESS"] },
+    { name: "denied batch", currentStatus: "DENIED", currentItems: ["PENDING", "PENDING", "PENDING"],
+      earlierStatus: "PROCESSING", earlierItems: ["PENDING", "PENDING", "PENDING"] },
+  ])("preserves a $name when a webhook follows an in-flight poll across module copies", async (scenario) => {
+    const { plans, store, plan } = await setupPayout();
+    const held = holdFirstBatch(batchBody(plan, scenario.currentItems as PayoutItemStatus[], scenario.currentStatus));
+    const poll = plans.refreshPayoutStatus(plan.id);
+    await held.started;
+    const webhookPlans = await importWithEnv<typeof import("@/lib/plans")>("@/lib/plans", WEBHOOK_KEYS);
+    const webhook = webhookPlans.refreshPayoutStatus(plan.id, { force: true });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    held.first.resolve(Response.json(batchBody(plan, scenario.earlierItems as PayoutItemStatus[], scenario.earlierStatus)));
+    await Promise.all([poll, webhook]);
+    expect({ ...held.stats(), status: store.getStore().plans[0].status })
+      .toEqual({ reads: 2, maxActive: 1, status: "needs_attention" });
+    expect(store.getStore().plans[0].items.map((item) => item.payoutStatus)).toEqual(scenario.currentItems);
+  });
+  it("runs a queued refresh after the previous read fails", async () => {
+    const { plans, plan } = await setupPayout();
+    const held = holdFirstBatch(batchBody(plan));
+    const failed = plans.refreshPayoutStatus(plan.id).catch((error: unknown) => error);
+    await held.started;
+    const queued = plans.refreshPayoutStatus(plan.id, { force: true });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    held.first.reject(new TypeError("Network request failed"));
+    expect(await failed).toMatchObject({ status: 502 });
+    expect((await queued).status).toBe("paid");
+    expect(held.stats()).toEqual({ reads: 2, maxActive: 1 });
+  });
+  it("keeps reads for different plans independent", async () => {
+    const { plans, store, plan } = await setupPayout();
+    const other = { ...plan, id: store.newId("plan"), payoutBatchId: "BATCH-OTHER" };
+    store.getStore().plans.push(other);
+    const held = holdFirstBatch(batchBody(other));
+    const first = plans.refreshPayoutStatus(plan.id);
+    await held.started;
+    try {
+      const second = plans.refreshPayoutStatus(other.id);
+      await vi.waitFor(() => expect(held.stats().reads).toBe(2));
+      expect((await second).status).toBe("paid");
+      expect(held.stats().maxActive).toBe(2);
+    } finally {
+      held.first.resolve(Response.json(batchBody(plan)));
+      await first;
+    }
+  });
+  it("rejects queued reads after a reset without another PayPal request", async () => {
+    const { plans, store, plan } = await setupPayout();
+    const held = holdFirstBatch(batchBody(plan));
+    const first = plans.refreshPayoutStatus(plan.id).catch((error: unknown) => error);
+    await held.started;
+    const queued = plans.refreshPayoutStatus(plan.id, { force: true }).catch((error: unknown) => error);
+    store.resetScenario();
+    held.first.resolve(Response.json(batchBody(plan)));
+    expect(await first).toMatchObject({ status: 409 });
+    expect(await queued).toMatchObject({ status: 409 });
+    expect(held.stats()).toEqual({ reads: 1, maxActive: 1 });
+    expect(store.getStore().plans).toEqual([]);
   });
   it("maps by partner ID and preserves settled items when a late read says PENDING", async () => {
     const { plans, plan } = await setupPayout();

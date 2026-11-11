@@ -295,11 +295,35 @@ async function sendPayout(planId: string): Promise<Plan> {
   return savePlan(store, { ...current, status, items, payoutBatchId: batch.batchId });
 }
 
-/** Polling stops reading paid plans; verified webhooks may refresh them for a later refund. */
-export async function refreshPayoutStatus(planId: string, options: { force?: boolean } = {}): Promise<Plan> {
+// Shared across route module copies. Each plan has its own queue; unrelated plans stay independent.
+const REFRESH_KEY = Symbol.for("paypal-ai-hackathon.plan-status-refreshes");
+const refreshHolder = globalThis as typeof globalThis & { [REFRESH_KEY]?: Map<string, Promise<Plan>> };
+
+/**
+ * Serialize reads and writes for each plan so an older response cannot overwrite a newer one.
+ * A forced webhook refresh gets its own read after any in-flight poll, including one that marks
+ * the plan paid. Joining that poll would miss a refund that arrived while its response was pending.
+ */
+export function refreshPayoutStatus(planId: string, { force = false }: { force?: boolean } = {}): Promise<Plan> {
+  const state = getStore();
+  const queue = (refreshHolder[REFRESH_KEY] ??= new Map());
+  const previous = queue.get(planId) ?? Promise.resolve();
+  // Failure still reaches its original caller; the next request can retry independently.
+  const read = previous.catch(() => {}).then(() => {
+    if (getStore() !== state) throw new PlanError(409, "The demo was reset while its payout status read was queued.");
+    return readPayoutStatus(planId, force);
+  });
+  queue.set(planId, read);
+  return read.finally(() => {
+    if (queue.get(planId) === read) queue.delete(planId);
+  });
+}
+
+/** Polling stops reading paid plans; verified webhooks may read them for a later refund. */
+async function readPayoutStatus(planId: string, force: boolean): Promise<Plan> {
   const plan = findPlan(getStore(), planId);
   const batchId = plan.payoutBatchId;
-  if (!batchId || (plan.status === "paid" && !options.force)) return plan;
+  if (!batchId || (plan.status === "paid" && !force)) return plan;
 
   let batch: PayoutBatch;
   try {

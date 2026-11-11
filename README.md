@@ -109,6 +109,7 @@ After approval, call `GET /api/plans/<id>/status`. It returns `{ plan }`, checks
 - While any item is pending, the plan stays `payout_pending`. The UI can highlight individual attention statuses using `NEEDS_ATTENTION` from `src/lib/payout-status.ts`.
 - All items must be `SUCCESS` for the plan to become `paid`; a batch-level `SUCCESS` alone is insufficient. Settled non-success items, or a denied/canceled batch, produce `needs_attention`.
 - Polling stops fetching paid plans. A later verified webhook can still record refunds or reversals. Without webhooks, late changes after `paid` require checking the PayPal sandbox directly.
+- Status reads run one at a time for each plan, shared across polling and webhooks. A webhook waits for an in-flight poll and then performs a fresh read, so an old response cannot overwrite a refund or denied batch. Different plans remain independent; a failed read does not block retries, and a reset rejects queued reads with 409.
 
 Webhooks are optional:
 
