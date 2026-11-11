@@ -8,6 +8,7 @@ The product idea is not public yet. This repository currently holds the foundati
 
 ## What works today
 
+- **Landing page and Typhoon Yagi replay:** the home page explains the product and replays September 2024 step by step: forecasts checked against the locked rule, simulated warning bulletins, and the moment a payout plan is ready for review.
 - **PayPal checkout (sandbox):** create an order, send the buyer to PayPal to approve it, capture the payment on return.
 - **AI chat endpoint:** sends a prompt to any OpenAI-compatible chat completions API and returns the reply.
 - **Runs without keys:** each integration falls back to mock mode when its credentials are missing, shown by a yellow badge on the home page.
@@ -33,7 +34,8 @@ Diagrams of the components and the payment flow: [docs/architecture.md](docs/arc
 ```
 src/
   app/
-    page.tsx                  UI
+    page.tsx                  landing page
+    replay-timeline.tsx       step-by-step scenario replay (client)
     api/
       health/route.ts         which integrations are live (no secrets)
       ai/route.ts             AI endpoint
@@ -49,6 +51,7 @@ src/
     ai.ts                     OpenAI-compatible chat client
     rate-limit.ts             per-IP rate limiting for public API routes
     rules.ts                  deterministic rules engine: triggers and payout amounts, no AI
+    replay.ts                 builds the replay timeline from a scenario fixture
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
