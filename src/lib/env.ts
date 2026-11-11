@@ -25,6 +25,7 @@ export const env = {
   paypal: {
     clientId: read("PAYPAL_CLIENT_ID"),
     clientSecret: read("PAYPAL_CLIENT_SECRET"),
+    webhookId: read("PAYPAL_WEBHOOK_ID"),
     // Only the sandbox is allowed for this hackathon.
     baseUrl: "https://api-m.sandbox.paypal.com",
   },

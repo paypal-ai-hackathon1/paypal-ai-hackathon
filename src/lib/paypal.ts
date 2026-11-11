@@ -259,9 +259,44 @@ function batchStatus(value: unknown): PayoutBatchStatus {
 }
 
 function itemStatus(value: unknown): PayoutItemStatus {
-  if (typeof value === "string" && Object.hasOwn(ITEM_STATUSES, value)) return value as PayoutItemStatus;
+  if (isPayoutItemStatus(value)) return value;
   console.warn(`Unknown PayPal payout item status: ${String(value)}`);
   return "PENDING";
+}
+
+export function isPayoutItemStatus(value: unknown): value is PayoutItemStatus {
+  return typeof value === "string" && Object.hasOwn(ITEM_STATUSES, value);
+}
+
+export const WEBHOOK_SIGNATURE_HEADERS = [
+  "paypal-transmission-id", "paypal-transmission-time", "paypal-transmission-sig",
+  "paypal-cert-url", "paypal-auth-algo",
+] as const;
+
+/** Postback verification is never mocked: an unverified event must not change a plan. */
+export async function verifyWebhookSignature(rawBody: string, headers: Headers): Promise<boolean> {
+  if (!paypalConfigured || !env.paypal.webhookId) return false;
+  if (!WEBHOOK_SIGNATURE_HEADERS.every((name) => headers.get(name)?.trim())) return false;
+  try {
+    const event: unknown = JSON.parse(rawBody);
+    if (!event || typeof event !== "object" || Array.isArray(event)) return false;
+  } catch {
+    return false;
+  }
+  const metadata = JSON.stringify({
+    transmission_id: headers.get("paypal-transmission-id"),
+    transmission_time: headers.get("paypal-transmission-time"),
+    transmission_sig: headers.get("paypal-transmission-sig"),
+    cert_url: headers.get("paypal-cert-url"),
+    auth_algo: headers.get("paypal-auth-algo"),
+    webhook_id: env.paypal.webhookId,
+  });
+  // Embed the original JSON rather than reconstructing it (whitespace, escapes and numbers).
+  const result = await paypalFetch<{ verification_status?: string }>("/v1/notifications/verify-webhook-signature", {
+    method: "POST",
+    body: `${metadata.slice(0, -1)},"webhook_event":${rawBody}}`,
+  });
+  return result.verification_status === "SUCCESS";
 }
 
 function checkBatchInput(planId: string, recipients: PayoutRecipient[]) {

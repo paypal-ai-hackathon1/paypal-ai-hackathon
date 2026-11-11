@@ -17,6 +17,7 @@ export default defineConfig({
     env: {
       PAYPAL_CLIENT_ID: "",
       PAYPAL_CLIENT_SECRET: "",
+      PAYPAL_WEBHOOK_ID: "",
       AI_API_KEY: "",
       PARTNER_PAYPAL_EMAILS: "",
     },

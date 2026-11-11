@@ -36,6 +36,24 @@ sequenceDiagram
   A-->>U: Redirect to /?payment=completed
 ```
 
+## Payout status delivery
+
+The approval route records one Payouts batch ID on the plan. Both status delivery paths call `refreshPayoutStatus()` in `src/lib/plans.ts`:
+
+```mermaid
+flowchart LR
+  Client["Client"] -->|GET /api/plans/id/status| Poll["Status route"]
+  PayPal["PayPal sandbox"] -->|POST /api/webhooks/paypal| Verify["Postback signature verification"]
+  Verify -->|verified event, deduplicated by ID| Refresh["Read current payout batch"]
+  Poll --> Refresh
+  Refresh --> PayPal
+  Refresh --> Merge["Merge partner item statuses"] --> Store["In-memory plan"]
+```
+
+The webhook's status fields never set payment amounts or directly replace item statuses. A verified event prompts a fresh batch read, so delayed deliveries reconcile with current PayPal data. A settled item never regresses to `PENDING`, including when concurrent reads finish out of order. A batch-level `SUCCESS` does not imply that each partner received money.
+
+Polling skips paid plans. Webhooks may refresh paid plans to record subsequent refunds or reversals. With no credentials, mock polling settles the plan without network access; webhook verification always fails closed. Webhook deduplication is bounded, shared through `globalThis`, and scoped to the current store state. A reset or restart clears it. This demo requires one server instance and does not persist its payment audit history.
+
 ## Mock mode
 
 Each integration checks for its own credentials. When they are missing:

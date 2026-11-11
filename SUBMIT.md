@@ -82,6 +82,9 @@ Extra checks:
 
 - [ ] `npm run check:sandbox` passes with real credentials
 - [ ] Full flow tested on the hosted demo, not only on localhost
+- [ ] Polling alone brings an approved sandbox payout to its per-partner terminal status
+- [ ] A real signed sandbox webhook reaches the hosted demo; postback verification is not tested with simulator messages
+- [ ] With `PAYPAL_WEBHOOK_ID` empty, mock polling still works and incoming webhooks cannot change a plan
 - [ ] Sandbox buyer test account listed in README
 - [ ] No secrets committed (`git log -p | grep -i secret` returns nothing sensitive)
 - [ ] README "Verified on the PayPal sandbox" section has a date

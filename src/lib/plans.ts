@@ -21,7 +21,8 @@ import type {
   PublicHousehold,
   PublicPartner,
 } from "./domain";
-import { centsToAmount, createPayoutBatch, type PayoutBatch } from "./paypal";
+import { centsToAmount, createPayoutBatch, getPayoutBatch, type PayoutBatch } from "./paypal";
+import { mergeItemStatus, planStatusFor } from "./payout-status";
 import { calculatePlanItems, evaluateRule, planTotalCents, UnlockedRuleError } from "./rules";
 import { getStore, newId, toPublicHousehold, type StoreState } from "./store";
 
@@ -292,4 +293,37 @@ async function sendPayout(planId: string): Promise<Plan> {
     return { ...item, payoutItemId: sent?.payoutItemId ?? null, payoutStatus: sent?.status ?? "PENDING" };
   });
   return savePlan(store, { ...current, status, items, payoutBatchId: batch.batchId });
+}
+
+/** Polling stops reading paid plans; verified webhooks may refresh them for a later refund. */
+export async function refreshPayoutStatus(planId: string, options: { force?: boolean } = {}): Promise<Plan> {
+  const plan = findPlan(getStore(), planId);
+  const batchId = plan.payoutBatchId;
+  if (!batchId || (plan.status === "paid" && !options.force)) return plan;
+
+  let batch: PayoutBatch;
+  try {
+    batch = await getPayoutBatch(batchId);
+  } catch (error) {
+    console.error(error);
+    const current = getStore().plans.find((p) => p.id === planId);
+    if (!current) throw new PlanError(409, "The demo was reset while its payout status was being read.");
+    throw new PlanError(502, "PayPal payout status is unavailable. Try again shortly.", current);
+  }
+
+  const store = getStore();
+  const current = store.plans.find((p) => p.id === planId);
+  if (!current || current.payoutBatchId !== batchId) {
+    throw new PlanError(409, "The demo changed while its payout status was being read.");
+  }
+  if (batch.batchId !== batchId || batch.senderBatchId !== planId) {
+    console.error(`Payout batch identity mismatch for plan ${planId}`);
+    throw new PlanError(502, "PayPal returned a payout batch that does not match this plan.", current);
+  }
+  const items = current.items.map((item) => {
+    const incoming = batch.items.find((entry) => entry.senderItemId === item.partnerId);
+    if (!incoming) return item;
+    return { ...item, payoutItemId: incoming.payoutItemId, payoutStatus: mergeItemStatus(item.payoutStatus, incoming.status) };
+  });
+  return savePlan(store, { ...current, items, status: planStatusFor(items, batch.status) });
 }

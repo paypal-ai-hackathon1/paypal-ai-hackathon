@@ -47,6 +47,8 @@ src/
       plans/[id]/route.ts       read a plan with its partners, households (masked) and counts
       plans/[id]/exclude/route.ts  take a household out of a plan under review
       plans/[id]/approve/route.ts  approve once and send the Payouts batch
+      plans/[id]/status/route.ts   poll PayPal and reconcile each partner's status
+      webhooks/paypal/route.ts     verify PayPal events and refresh their batch
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -58,6 +60,8 @@ src/
     rules.ts                  deterministic rules engine: triggers and payout amounts, no AI
     replay.ts                 builds the replay timeline from a scenario fixture
     plans.ts                  plan lifecycle: create, exclude, approve once (plan hash, cap)
+    payout-status.ts          client-safe status merging and needs-attention statuses
+    payout-webhook.ts         verified, deduplicated payout event handling
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
@@ -97,6 +101,23 @@ Open http://localhost:3000.
 | `npm run lint` | ESLint |
 | `npm run check:sandbox` | Calls the real PayPal sandbox and AI provider with the keys in `.env.local` and prints a sandbox approval link |
 | `npm run check:payouts -- --email <sandbox email>` | Sends a $1.00 sandbox Payouts batch and waits for its status. See [docs/payouts-spike.md](docs/payouts-spike.md) |
+
+## Payout status and webhooks
+
+After approval, call `GET /api/plans/<id>/status`. It returns `{ plan }`, checks each partner's payout, and works without a webhook. In mock mode, the first status read is `payout_pending` and the next is `paid`.
+
+- While any item is pending, the plan stays `payout_pending`. The UI can highlight individual attention statuses using `NEEDS_ATTENTION` from `src/lib/payout-status.ts`.
+- All items must be `SUCCESS` for the plan to become `paid`; a batch-level `SUCCESS` alone is insufficient. Settled non-success items, or a denied/canceled batch, produce `needs_attention`.
+- Polling stops fetching paid plans. A later verified webhook can still record refunds or reversals. Without webhooks, late changes after `paid` require checking the PayPal sandbox directly.
+
+Webhooks are optional:
+
+1. Deploy one server instance with a public HTTPS URL.
+2. In the sandbox app's PayPal developer dashboard, register `https://<your-host>/api/webhooks/paypal`. Subscribe to the [Payouts batch and item events](https://developer.paypal.com/payouts/webhooks/).
+3. Set `PAYPAL_WEBHOOK_ID` to that registration's ID, alongside the sandbox client credentials. Keep it empty to use polling alone.
+4. Trigger a real sandbox Payouts batch and verify delivery. PayPal's [webhook simulator does not support postback signature verification](https://developer.paypal.com/api/rest/webhooks/rest/), so simulator messages are not proof that this path works.
+
+`POST /api/webhooks/paypal` verifies the original event with PayPal before changing a plan, then reads the current batch using the same reconciliation as polling. This avoids trusting stale event status fields. Failed verification returns 400; transient upstream failures return 502 so delivery can retry. Completed event IDs are deduplicated, including concurrent deliveries. Deduplication is bounded and lives in memory for the current scenario; resets and restarts clear it. Bodies are limited to 64 KiB of UTF-8 bytes.
 
 ## Development workflow
 
