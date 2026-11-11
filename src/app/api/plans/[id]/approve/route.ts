@@ -23,6 +23,9 @@ export async function POST(req: Request, ctx: RouteContext<"/api/plans/[id]/appr
   }
 
   const body = (await req.json().catch(() => ({}))) as { planHash?: unknown; approverName?: unknown };
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Request body must be a JSON object" }, { status: 400 });
+  }
   const planHash = typeof body.planHash === "string" ? body.planHash.trim().toLowerCase() : "";
   if (!PLAN_HASH.test(planHash)) {
     return Response.json(

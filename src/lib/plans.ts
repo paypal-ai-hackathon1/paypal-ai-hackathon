@@ -223,9 +223,6 @@ export async function approvePlan(input: {
   approverName: string;
   now?: Date;
 }): Promise<Plan> {
-  const inFlight = sending().get(input.planId);
-  if (inFlight) return inFlight;
-
   const store = getStore();
   const plan = findPlan(store, input.planId);
 
@@ -237,6 +234,9 @@ export async function approvePlan(input: {
     throw new PlanError(422, "Every household was excluded, so there is nothing to pay.", plan);
   }
   if (plan.totalCents > MAX_PLAN_TOTAL_CENTS) throw new PlanError(422, overCapMessage(plan.totalCents), plan);
+
+  const inFlight = sending().get(input.planId);
+  if (inFlight) return inFlight;
 
   if (plan.status === "in_review") {
     savePlan(store, {
@@ -266,10 +266,14 @@ async function sendPayout(planId: string): Promise<Plan> {
     batch = await createPayoutBatch({ planId, recipients });
   } catch (err) {
     console.error(err);
+    const current = getStore().plans.find((p) => p.id === planId);
+    if (!current) {
+      throw new PlanError(409, "The demo was reset while the payout was being sent. Check PayPal before starting a new replay.");
+    }
     throw new PlanError(
       502,
       "PayPal did not accept the payout. The plan stays approved: approve again to retry, it cannot be paid twice.",
-      findPlan(getStore(), planId),
+      current,
     );
   }
 
@@ -278,7 +282,7 @@ async function sendPayout(planId: string): Promise<Plan> {
   const current = store.plans.find((p) => p.id === planId);
   if (!current) {
     console.error(`Payout batch ${batch.batchId} was sent for plan ${planId}, but the demo was reset meanwhile`);
-    throw new PlanError(409, "The demo was reset while the payout was being sent. Start the replay again.");
+    throw new PlanError(409, "The demo was reset while the payout was being sent. Check PayPal before starting a new replay.");
   }
 
   const status: PlanStatus = batch.status === "DENIED" || batch.status === "CANCELED" ? "needs_attention" : "payout_pending";

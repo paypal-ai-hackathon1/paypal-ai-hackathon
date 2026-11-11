@@ -34,6 +34,19 @@ function post(url: string, body: unknown) {
 
 const ctx = (id: string) => ({ params: Promise.resolve({ id }) });
 
+/** Holds a Payouts request open so tests can exercise other requests and resets during a send. */
+function delayedPayout() {
+  const response = Promise.withResolvers<Response>();
+  const started = Promise.withResolvers<void>();
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url.endsWith("/v1/oauth2/token")) return Response.json(TOKEN.body);
+    started.resolve();
+    return response.promise;
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return { response, started: started.promise, fetchMock };
+}
+
 // connection() needs a real Next.js request scope. Here it only has to resolve.
 vi.mock("next/server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("next/server")>()),
@@ -212,6 +225,63 @@ describe("approvePlan", () => {
     expect(payoutPosts(fetchMock)).toHaveLength(1);
   });
 
+  it("refuses a stale hash even while another approval is sending", async () => {
+    const { plans } = await setup(SANDBOX);
+    const { plan } = plans.createPlan(RULE_ID);
+    const pending = delayedPayout();
+    const first = plans.approvePlan({ planId: plan.id, planHash: plan.planHash, approverName: "Lan" });
+    await pending.started;
+
+    await expect(plans.approvePlan({ planId: plan.id, planHash: "0".repeat(64), approverName: "Other" }))
+      .rejects.toMatchObject({ status: 409 });
+
+    pending.response.resolve(Response.json(BATCH_CREATED.body));
+    await expect(first).resolves.toMatchObject({ payoutBatchId: "BATCH-1", approvedBy: "Lan" });
+    expect(pending.fetchMock).toHaveBeenCalledTimes(2); // one authentication and one send
+  });
+
+  it.each(["accepted", "network failure"])("returns 409 after a reset during a send: %s", async (outcome) => {
+    const { plans, store } = await setup(SANDBOX);
+    const { plan } = plans.createPlan(RULE_ID);
+    const pending = delayedPayout();
+    const result = plans.approvePlan({ planId: plan.id, planHash: plan.planHash, approverName: "Lan" })
+      .catch((error: unknown) => error);
+    await pending.started;
+    store.resetScenario();
+
+    if (outcome === "accepted") pending.response.resolve(Response.json(BATCH_CREATED.body));
+    else pending.response.reject(new TypeError("Network request failed"));
+
+    expect(await result).toMatchObject({ status: 409, message: expect.stringContaining("Check PayPal") });
+    expect(store.getStore().plans).toEqual([]);
+    expect(pending.fetchMock).toHaveBeenCalledTimes(2);
+    expect(plans.createPlan(RULE_ID).plan.id).not.toBe(plan.id);
+  });
+
+  it("recovers the same batch after the first send times out", async () => {
+    const { plans } = await setup(SANDBOX);
+    const { plan } = plans.createPlan(RULE_ID);
+    const input = { planId: plan.id, planHash: plan.planHash, approverName: "Lan" };
+    const pending = delayedPayout();
+    const first = plans.approvePlan(input).catch((error: unknown) => error);
+    await pending.started;
+    pending.response.reject(new TypeError("Network request failed"));
+    expect(await first).toMatchObject({ status: 502, plan: { status: "approved", payoutBatchId: null } });
+
+    const retry = queueFetch(
+      { status: 400, body: { name: "USER_BUSINESS_ERROR", links: [
+        { href: "https://api-m.sandbox.paypal.com/v1/payments/payouts/BATCH-RECOVERED" },
+      ] } },
+      { body: { batch_header: { payout_batch_id: "BATCH-RECOVERED", batch_status: "PROCESSING",
+        sender_batch_header: { sender_batch_id: plan.id } }, items: [] } },
+    );
+    await expect(plans.approvePlan(input)).resolves.toMatchObject({ payoutBatchId: "BATCH-RECOVERED" });
+    const [, request] = retry.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(request.body as string).sender_batch_header.sender_batch_id).toBe(plan.id);
+    expect((request.headers as Record<string, string>)["PayPal-Request-Id"]).toBe(plan.id);
+    expect(payoutPosts(retry)).toHaveLength(1);
+  });
+
   it("keeps the plan approved when PayPal refuses, and sends again on the next approval", async () => {
     const { plans } = await setup(SANDBOX);
     queueFetch(TOKEN, { status: 422, body: { name: "INSUFFICIENT_FUNDS", message: "Sender does not have sufficient funds" } });
@@ -269,6 +339,31 @@ describe("getPlanView", () => {
 });
 
 describe("plan routes", () => {
+  it.each([null, [], "text", 123, true])("rejects non-object JSON bodies: %j", async (body) => {
+    const { plans } = await setup();
+    const { plan } = plans.createPlan(RULE_ID);
+    const create = (await importWithEnv<PlansRoute>("@/app/api/plans/route", {})).POST;
+    const exclude = (await importWithEnv<ExcludeRoute>("@/app/api/plans/[id]/exclude/route", {})).POST;
+    const approve = (await importWithEnv<ApproveRoute>("@/app/api/plans/[id]/approve/route", {})).POST;
+    expect((await create(post("http://localhost/api/plans", body))).status).toBe(400);
+    expect((await exclude(post("http://localhost/exclude", body), ctx(plan.id))).status).toBe(400);
+    expect((await approve(post("http://localhost/approve", body), ctx(plan.id))).status).toBe(400);
+    expect(plans.getPlanView(plan.id).plan.status).toBe("in_review");
+  });
+
+  it("rejects malformed JSON without changing the plan", async () => {
+    const { plans } = await setup();
+    const { plan } = plans.createPlan(RULE_ID);
+    const create = (await importWithEnv<PlansRoute>("@/app/api/plans/route", {})).POST;
+    const exclude = (await importWithEnv<ExcludeRoute>("@/app/api/plans/[id]/exclude/route", {})).POST;
+    const approve = (await importWithEnv<ApproveRoute>("@/app/api/plans/[id]/approve/route", {})).POST;
+    const badRequest = () => new Request("http://localhost/api/plans", { method: "POST", body: "{" });
+    expect((await create(badRequest())).status).toBe(400);
+    expect((await exclude(badRequest(), ctx(plan.id))).status).toBe(400);
+    expect((await approve(badRequest(), ctx(plan.id))).status).toBe(400);
+    expect(plans.getPlanView(plan.id).plan.status).toBe("in_review");
+  });
+
   it("POST /api/plans validates input, creates once, then returns the same plan", async () => {
     await setup();
     const { POST } = await importWithEnv<PlansRoute>("@/app/api/plans/route", {});

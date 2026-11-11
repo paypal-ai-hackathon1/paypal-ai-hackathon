@@ -15,6 +15,9 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => ({}))) as { ruleId?: unknown };
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Request body must be a JSON object" }, { status: 400 });
+  }
   const ruleId = typeof body.ruleId === "string" ? body.ruleId.trim() : "";
   if (!RULE_ID.test(ruleId)) {
     return Response.json({ error: "ruleId is required, like rule-rain-150-v1" }, { status: 400 });

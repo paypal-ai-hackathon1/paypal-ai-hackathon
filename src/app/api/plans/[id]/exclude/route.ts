@@ -22,6 +22,9 @@ export async function POST(req: Request, ctx: RouteContext<"/api/plans/[id]/excl
   }
 
   const body = (await req.json().catch(() => ({}))) as { householdId?: unknown };
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    return Response.json({ error: "Request body must be a JSON object" }, { status: 400 });
+  }
   const householdId = typeof body.householdId === "string" ? body.householdId.trim() : "";
   if (!HOUSEHOLD_ID.test(householdId)) {
     return Response.json({ error: "householdId is required, like hh-qn-13" }, { status: 400 });
