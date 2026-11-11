@@ -38,6 +38,7 @@ src/
       ai/route.ts             AI endpoint
       paypal/orders/route.ts  create a PayPal order
       paypal/return/route.ts  PayPal redirects here, payment is captured
+      rules/[id]/lock/route.ts  a person locks a reviewed draft rule
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -46,6 +47,7 @@ src/
     paypal.ts                 PayPal REST client (sandbox)
     ai.ts                     OpenAI-compatible chat client
     rate-limit.ts             per-IP rate limiting for public API routes
+    rules.ts                  deterministic rules engine: triggers and payout amounts, no AI
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
