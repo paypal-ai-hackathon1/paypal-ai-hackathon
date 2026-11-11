@@ -112,7 +112,7 @@ Every change goes through a short-lived branch and a pull request into `main`, w
 - Error responses do not echo upstream error bodies; details go to the server log.
 - Approval is the only step that moves money. The approver must send the hash of the plan they reviewed, a plan is paid at most once (a repeat or simultaneous approval sends nothing new), and a plan over $1,000 is refused so a public demo cannot drain the sandbox balance.
 - **No login in the demo:** anyone with the URL can approve a plan. The approver types a name, which is recorded on the plan. A real deployment needs authentication in front of the approve route.
-- Plan mutation routes reject malformed or non-object JSON with 400. A stale plan hash is also rejected while another approval is sending.
+- Plan mutation routes reject malformed or non-object JSON with 400. A stale plan hash is rejected before, during and after payout submission; matching approval retries return the existing result without sending again.
 - If the demo is reset while a payout request is in flight, approval returns 409. Check the PayPal sandbox before starting a new replay: resetting the in-memory store does not cancel a payout already accepted by PayPal.
 
 ## License

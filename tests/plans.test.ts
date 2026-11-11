@@ -212,6 +212,29 @@ describe("approvePlan", () => {
     expect(payoutPosts(fetchMock)).toHaveLength(1);
   });
 
+  it.each(["payout_pending", "paid", "needs_attention"] as const)(
+    "the approve route rejects an obsolete hash when the plan is %s",
+    async (status) => {
+      const { plans, store } = await setup(SANDBOX);
+      const fetchMock = queueFetch(TOKEN, BATCH_CREATED);
+      const original = plans.createPlan(RULE_ID).plan;
+      const revised = plans.excludeHousehold(original.id, "hh-qn-13");
+      const sent = await plans.approvePlan({ planId: original.id, planHash: revised.planHash, approverName: "Lan" });
+      store.getStore().plans = [{ ...sent, status }];
+      const { POST } = await importWithEnv<ApproveRoute>("@/app/api/plans/[id]/approve/route", SANDBOX);
+      const url = `http://localhost/api/plans/${original.id}/approve`;
+
+      const stale = await POST(post(url, { planHash: original.planHash, approverName: "Stale reviewer" }), ctx(original.id));
+      expect(stale.status).toBe(409);
+      expect(await stale.json()).toMatchObject({ plan: { planHash: revised.planHash, status } });
+
+      const repeat = await POST(post(url, { planHash: revised.planHash, approverName: "Other reviewer" }), ctx(original.id));
+      expect(repeat.status).toBe(200);
+      expect(await repeat.json()).toMatchObject({ plan: { payoutBatchId: sent.payoutBatchId, approvedBy: "Lan", status } });
+      expect(payoutPosts(fetchMock)).toHaveLength(1);
+    },
+  );
+
   it("sends one batch when two approvals arrive together", async () => {
     const { plans } = await setup(SANDBOX);
     const fetchMock = queueFetch(TOKEN, BATCH_CREATED);

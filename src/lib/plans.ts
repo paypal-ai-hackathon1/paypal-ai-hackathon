@@ -212,8 +212,8 @@ const sending = () => (sendingHolder[SENDING_KEY] ??= new Map<string, Promise<Pl
 /**
  * Approves a plan and sends its Payouts batch.
  *
- * - A plan under review needs its current hash. A stale hash is refused with the current plan.
- * - A plan already sent (or settled) is returned as it is: nothing is sent again.
+ * - Every approval needs the current hash, including retries after sending or settlement.
+ * - A plan already sent (or settled) with a matching hash is returned without another send.
  * - A plan approved earlier whose send failed is sent again. The plan ID is the PayPal
  *   sender_batch_id, so PayPal cannot pay it twice.
  */
@@ -226,10 +226,10 @@ export async function approvePlan(input: {
   const store = getStore();
   const plan = findPlan(store, input.planId);
 
-  if (plan.status !== "in_review" && plan.status !== "approved") return plan;
   if (input.planHash !== plan.planHash) {
     throw new PlanError(409, "The plan changed after you opened it. Check the new totals and approve again.", plan);
   }
+  if (plan.status !== "in_review" && plan.status !== "approved") return plan;
   if (plan.items.length === 0 || plan.totalCents <= 0) {
     throw new PlanError(422, "Every household was excluded, so there is nothing to pay.", plan);
   }
