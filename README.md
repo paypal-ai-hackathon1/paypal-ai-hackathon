@@ -43,6 +43,10 @@ src/
       paypal/orders/route.ts  create a PayPal order
       paypal/return/route.ts  PayPal redirects here, payment is captured
       rules/[id]/lock/route.ts  a person locks a reviewed draft rule
+      plans/route.ts            create the payout plan for a locked rule
+      plans/[id]/route.ts       read a plan with its partners, households (masked) and counts
+      plans/[id]/exclude/route.ts  take a household out of a plan under review
+      plans/[id]/approve/route.ts  approve once and send the Payouts batch
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -53,6 +57,7 @@ src/
     rate-limit.ts             per-IP rate limiting for public API routes
     rules.ts                  deterministic rules engine: triggers and payout amounts, no AI
     replay.ts                 builds the replay timeline from a scenario fixture
+    plans.ts                  plan lifecycle: create, exclude, approve once (plan hash, cap)
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
@@ -105,6 +110,8 @@ Every change goes through a short-lived branch and a pull request into `main`, w
 - Captures send a `PayPal-Request-Id` derived from the order id, so retrying a capture does not charge twice.
 - API routes validate input (amount range, currency code, prompt length) and apply a per-IP rate limit, so a public demo cannot be used to burn the AI key. The limit is in-memory, so on serverless hosts it is best-effort.
 - Error responses do not echo upstream error bodies; details go to the server log.
+- Approval is the only step that moves money. The approver must send the hash of the plan they reviewed, a plan is paid at most once (a repeat or simultaneous approval sends nothing new), and a plan over $1,000 is refused so a public demo cannot drain the sandbox balance.
+- **No login in the demo:** anyone with the URL can approve a plan. The approver types a name, which is recorded on the plan. A real deployment needs authentication in front of the approve route.
 
 ## License
 
