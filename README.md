@@ -1,15 +1,31 @@
 # Early Relief
 
 [![CI](https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon/actions/workflows/ci.yml)
+[![Hosted on Render](https://img.shields.io/badge/Hosted-Render-46E3B7?logo=render&logoColor=white)](https://early-relief.onrender.com)
+[![PayPal Payouts sandbox](https://img.shields.io/badge/PayPal-Payouts%20sandbox-003087?logo=paypal&logoColor=white)](https://developer.paypal.com/docs/payouts/)
+[![AI Meta muse-spark-1.3](https://img.shields.io/badge/AI-Meta%20muse--spark--1.3-0467DF?logo=meta&logoColor=white)](#how-ai-is-used)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![License MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
+![Early Relief: AI reads, code decides, a person approves, PayPal pays](docs/images/cover.jpg)
 
 **Get cash to families before the flood, not after it.**
 
 Early Relief is anticipatory flood cash for Vietnam. A weather forecast crosses a rule that was locked before the season, AI reads the official Vietnamese warning bulletins and quotes its sources, a person reviews and approves the plan once, and **PayPal Payouts** sends the money to local partner organisations, who hand it to registered households before the water arrives.
 
-Entry for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/).
+- **Live demo:** [early-relief.onrender.com](https://early-relief.onrender.com) (free instance: the first visit after a quiet period can take up to a minute to wake up)
+- **Demo video (under 3 min):** [youtu.be/uHITj_zxDDo](https://youtu.be/uHITj_zxDDo)
+- **Hackathon event:** [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/)
+- **Hackathon submission:** [Early Relief on Devpost](https://devpost.com/software/early-relief)
+- **Architecture:** [docs/architecture.md](docs/architecture.md)
 
-- **Hosted demo:** https://early-relief.onrender.com (free instance: the first visit after a quiet period can take up to a minute to wake up)
-- **Video (under 3 min):** https://youtu.be/uHITj_zxDDo
+### Screenshots
+
+| Replay: code checks each forecast against the locked rule | AI reads the bulletin, every value quoted and checked by code |
+| --- | --- |
+| ![Typhoon Yagi replay with province bars crossing the threshold](docs/images/replay.jpg) | ![AI readings beside the Vietnamese bulletin, each with a verified quote](docs/images/ai-reading.jpg) |
+| **Code flags shared phones and addresses; only a person excludes** | **One approval, one PayPal sandbox batch, each partner Received** |
+| ![Household list with review flags and Exclude buttons](docs/images/households.jpg) | ![Approved plan with PayPal batch ID and three partners Received](docs/images/paid.jpg) |
 
 The demo replays **Typhoon Yagi** (September 2024, northern Vietnam) with simulated forecasts, bulletins, partners and households. Everything runs on the **PayPal sandbox**; no real money moves.
 
