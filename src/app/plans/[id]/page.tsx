@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { getPlanReview } from "@/lib/plan-review";
 import { PlanError } from "@/lib/plans";
+import { ResetDemoButton } from "../../reset-demo-button";
 import { SITE_NAME } from "../../site";
 import { PlanReviewScreen } from "./plan-review";
 
@@ -18,9 +19,12 @@ export default function PlanPage({ params }: PageProps<"/plans/[id]">) {
           <Link href="/" className="font-semibold">
             {SITE_NAME}
           </Link>
-          <Link href="/#replay" className="text-sm text-muted underline underline-offset-4 hover:text-foreground">
-            Back to the replay
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/#replay" className="text-sm text-muted underline underline-offset-4 hover:text-foreground">
+              Back to the replay
+            </Link>
+            <ResetDemoButton className="rounded-md border border-line px-3 py-1 text-sm text-muted hover:text-foreground" />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">

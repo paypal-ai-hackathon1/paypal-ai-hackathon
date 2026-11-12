@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatVietnamTime, METRIC_LABEL, type Replay, type ReplayEvent } from "@/lib/replay";
+import { ResetDemoButton } from "./reset-demo-button";
 import { StartReviewButton } from "./start-review-button";
 
 const STEP_MS = 1800;
@@ -72,7 +73,11 @@ export function ReplayTimeline({ replay }: { replay: Replay }) {
             >
               {finished ? "Replay again" : "Start Yagi replay"}
             </button>
-          ) : (
+          ) : null}
+          {finished && (
+            <ResetDemoButton className="rounded-md border border-line bg-surface px-4 py-2.5 text-sm font-semibold hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
+          )}
+          {started && !finished && (
             <>
               <button
                 type="button"

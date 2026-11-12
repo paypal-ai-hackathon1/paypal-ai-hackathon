@@ -40,7 +40,8 @@ src/
     replay-timeline.tsx       step-by-step scenario replay (client)
     start-review-button.tsx   creates the plan for the locked rule and opens its review
     plans/[id]/               plan review: rule and forecasts, AI readings beside their source
-                              text, per-partner totals, flagged households and Exclude
+                              text, per-partner totals, flagged households and Exclude,
+                              then one-time approval and live payout status per partner
     api/
       health/route.ts         which integrations are live (no secrets)
       ai/route.ts             AI endpoint
@@ -54,6 +55,7 @@ src/
       plans/[id]/status/route.ts   poll PayPal and reconcile each partner's status
       webhooks/paypal/route.ts     verify PayPal events and refresh their batch
       bulletins/read/route.ts      AI reads a bulletin; every quote is checked against the text
+      demo/reset/route.ts          start the demo over from a fresh scenario
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -70,10 +72,12 @@ src/
     plan-review.ts            everything the review screen shows, gathered on the server
     format.ts                 client-safe money and quote-matching helpers
     ai-bulletin.ts            bulletin reader: AI values with verbatim quotes, checked by code
+    payout-labels.ts          plain-language payout statuses and polling rules
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
-docs/                         architecture and design notes
+docs/                         architecture, deploy and design notes
+render.yaml                   Render Blueprint for the hosted demo (one instance)
 SUBMIT.md                     Devpost submission kit and checklist
 .github/workflows/ci.yml      CI: lint, typecheck, tests and build on every push
 .husky/                       git hooks: lint on commit, typecheck + tests on push

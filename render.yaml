@@ -1,0 +1,31 @@
+# Render Blueprint: one web service for the hosted demo. See docs/deploy.md.
+# The demo store is in memory, so this must stay a single instance (no scaling).
+services:
+  - type: web
+    name: early-relief
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      # Secrets: Render asks for these when the Blueprint is created. Leave any empty for mock mode.
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        sync: false
+      - key: AI_MODEL
+        sync: false
+      - key: PARTNER_PAYPAL_EMAILS
+        sync: false
