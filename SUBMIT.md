@@ -23,7 +23,7 @@ Early Relief replays Typhoon Yagi with simulated data:
 1. **Trigger (code):** a rule locked before the season, "$20 per registered household when the forecast made up to 48 hours ahead shows at least 150 mm of rain in 24 hours", is checked against each forecast. Quang Ninh and Hai Phong cross it 48 hours ahead, Thai Binh 24 hours ahead.
 2. **Evidence (AI, checked by code):** AI reads each Vietnamese warning bulletin and returns provinces, hazard, warning level, valid time, rainfall and wind, each with a verbatim quote. Code checks every quote against the bulletin. A value whose quote is not in the text is marked "Check this"; a value the bulletin does not state stays empty.
 3. **Amounts (code):** one payout line per local partner, households × the fixed amount, in integer cents. AI output never reaches this step.
-4. **Review (person):** the review screen puts the locked rule, the forecasts against the threshold, the AI readings beside their source text, and every household with an Exclude button on one page. Totals are recalculated by the server.
+4. **Review (person):** the review screen puts the locked rule, the forecasts against the threshold, the AI readings beside their source text, and every household with an Exclude button on one page. Code flags households that share a phone number or address, or were registered in a burst; AI can explain the flags in plain words, but a flag never excludes anyone. Totals are recalculated by the server.
 5. **Approve once (person):** approval restates the total and sends a fingerprint (hash) of the exact plan reviewed. If the plan changed, PayPal is not called. A plan can only be paid once, and a plan over $1,000 is refused.
 6. **Pay (PayPal Payouts):** one sandbox Payouts batch per plan, one item per partner. The screen shows the PayPal batch ID and each partner's status in plain language ("Sending", "Received", "Not claimed") until the money arrives.
 
@@ -40,8 +40,9 @@ Payouts go to registered partner organisations, which hand cash to households. T
 - **AI models / services:**
   - **Meta Model API, `muse-spark-1.3`**, through its OpenAI-compatible chat completions endpoint. It reads Vietnamese bulletins into structured JSON with a quote per value. Any OpenAI-compatible model can be swapped in with `AI_BASE_URL` and `AI_MODEL`.
   - A `chatJson` helper validates every reply with a hand-written validator, retries once with the error, and fails closed. Bulletin text is wrapped as `<data>` with a policy that instructions inside it are ignored.
+  - The same model explains household flags for the reviewer. It only sees household IDs, check results and amounts, and a summary that mentions an amount not in the plan is replaced by a template.
   - Without a key, a pattern-matching reader produces the same shape through the same quote check, so the demo works for anyone.
-- **AI tools used to build it:** Claude Code and OpenAI Codex helped write code, tests and docs. Their commits carry `Co-authored-by` trailers. Every change went through a pull request with lint, typecheck, unit tests (184) and CI.
+- **AI tools used to build it:** Claude Code and OpenAI Codex helped write code, tests and docs. Their commits carry `Co-authored-by` trailers. Every change went through a pull request with lint, typecheck, unit tests (196) and CI.
 - **Sponsor tools:** none.
 
 **Challenges we ran into**
@@ -66,7 +67,7 @@ Payouts go to registered partner organisations, which hand cash to households. T
 **What's next**
 
 - Partner confirmation page with one-time receipt codes, and sampled phone callbacks.
-- Duplicate and spike checks on household lists, with AI-written explanations for reviewers.
+- Richer household checks, such as cross-partner duplicates and lists compared with official registers.
 - A donor report whose numbers are checked against recorded payouts.
 - Live forecast data instead of the replay, and a pilot with a Vietnamese relief organisation.
 
