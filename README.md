@@ -1,33 +1,81 @@
-# PayPal AI Hackathon 2026
+# Early Relief
 
 [![CI](https://github.com/DucPhamNgoc08/paypal-ai-hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/DucPhamNgoc08/paypal-ai-hackathon/actions/workflows/ci.yml)
 
-Work-in-progress entry for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) (Oct–Nov 2026).
+**Get cash to families before the flood, not after it.**
 
-The product idea is not public yet. This repository currently holds the foundation: a Next.js app with the PayPal sandbox and an AI model wired in end to end, tests, and CI.
+Early Relief is anticipatory flood cash for Vietnam. A weather forecast crosses a rule that was locked before the season, AI reads the official Vietnamese warning bulletins and quotes its sources, a person reviews and approves the plan once, and **PayPal Payouts** sends the money to local partner organisations, who hand it to registered households before the water arrives.
 
-## What works today
+Entry for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/).
 
-- **Landing page and Typhoon Yagi replay:** the home page explains the product and replays September 2024 step by step: forecasts checked against the locked rule, simulated warning bulletins, and the moment a payout plan is ready for review.
-- **PayPal checkout (sandbox):** create an order, send the buyer to PayPal to approve it, capture the payment on return.
-- **AI chat endpoint:** sends a prompt to any OpenAI-compatible chat completions API and returns the reply.
-- **Runs without keys:** each integration falls back to mock mode when its credentials are missing, shown by a yellow badge on the home page.
+- **Hosted demo:** _link added after deploy_
+- **Video (under 3 min):** _link added after upload_
+
+The demo replays **Typhoon Yagi** (September 2024, northern Vietnam) with simulated forecasts, bulletins, partners and households. Everything runs on the **PayPal sandbox**; no real money moves.
+
+## The problem
+
+Typhoon Yagi made landfall in northern Vietnam on 7 September 2024. Warnings of very heavy rain were issued days before, yet cash aid usually reaches families weeks after a flood, when the damage is done. Anticipatory action, paying a little money *before* a disaster on a pre-agreed trigger, is known to protect more for less, but organisers struggle with three things:
+
+1. **Trust in the trigger.** Who decided this province gets paid, and was it changed after the fact?
+2. **Speed with checks.** Bulletins are long Vietnamese text, household lists contain duplicates, and there are hours, not weeks.
+3. **Getting money out.** Paying hundreds of households one by one is slow; local partners need a single, traceable payment.
+
+## What it does
+
+| Step | Who decides | What happens |
+| --- | --- | --- |
+| 1. Trigger | **Code** | A rule locked before the season ("$20 per household when the 48-hour forecast shows at least 150 mm of rain in 24 hours") is checked against each forecast. Quang Ninh and Hai Phong cross it 48 hours ahead, Thai Binh 24 hours ahead. |
+| 2. Evidence | **AI**, checked by code | AI reads each Vietnamese warning bulletin and returns provinces, hazard, warning level, valid time, rainfall and wind, each with a verbatim quote. Code checks every quote against the bulletin; anything it cannot find is marked "Check this", anything the bulletin does not say stays empty. |
+| 3. Amounts | **Code** | One payout line per partner: households × the rule's fixed amount, in integer cents. AI output never reaches this step. |
+| 4. Review | **A person** | The review screen shows the rule, the forecasts against the threshold, the AI readings beside their source text, and every household with an Exclude button. Totals are recalculated by the server. |
+| 5. Approve | **A person**, once | Approval restates the total and carries a fingerprint (hash) of the exact plan reviewed. If anything changed, PayPal is not called. A plan can only be paid once. |
+| 6. Pay | **PayPal Payouts** | One sandbox Payouts batch per plan, one item per partner. The screen shows the batch ID and each partner's status in plain language until the money is received. |
+
+## Try it
+
+1. Open the hosted demo (or run it locally, below).
+2. Press **Start Yagi replay** and watch forecasts and bulletins arrive. When the plan is ready, press **Review the payout plan**.
+3. On the review screen, press **Read with AI** on a bulletin and compare each value with the highlighted quote.
+4. **Exclude** a household and watch the partner total and plan total drop.
+5. **Approve and send**, type your name, and confirm. Watch each partner go from "Sending" to "Received" and note the PayPal sandbox batch ID.
+6. **Reset demo** starts over with a fresh scenario.
+
+No account or key is needed to try the hosted demo. Locally, the app runs without any keys in mock mode (see below).
+
+## Verified on the PayPal sandbox
+
+| Date | What was tested | Result |
+| --- | --- | --- |
+| 2026-11-10 | OAuth token carries the Payouts scope | OK |
+| 2026-11-10 | $1.00 Payouts batch to a sandbox personal account (`npm run check:payouts`) | Item `SUCCESS` within 120 s |
+| 2026-11-10 | Payout to an address with no PayPal account | Item `UNCLAIMED` (`RECEIVER_UNREGISTERED`), funds return after 30 days |
+| 2026-11-12 | Full flow in the app: create plan, exclude, stale-hash approval refused (409), approval, polling to `paid` | OK in mock mode; repeated on the hosted sandbox build before recording |
+
+### Can partners in Vietnam receive PayPal Payouts?
+
+PayPal's own pages list Vietnam as eligible for Payouts with "send, receive and withdraw", in USD (VND is not a PayPal API currency), with withdrawal to a local bank for a fee. That is why Early Relief pays **registered partner organisations**, not individual households. **We have not tested this with a real Vietnam-registered account**: everything here runs on the sandbox, and live use would need PayPal's approval. Details and sources: [docs/payouts-spike.md](docs/payouts-spike.md).
 
 ## How PayPal is used
 
 | PayPal product / API | Where it is used | Why |
 | --- | --- | --- |
 | OAuth 2.0 client credentials | `src/lib/paypal.ts` | Server-side access token |
-| Orders API v2 (sandbox) | `src/lib/paypal.ts` | Create and capture payments |
-| Payouts v1 (sandbox) | `src/lib/paypal.ts` (`createPayoutBatch`, `getPayoutBatch`) | Send one batch per approved plan, one item per partner, and read each item's status. The plan ID is the `sender_batch_id`, so a retry cannot pay twice |
+| **Payouts v1** (sandbox) | `src/lib/paypal.ts` (`createPayoutBatch`, `getPayoutBatch`), `src/lib/plans.ts` | One batch per approved plan, one item per partner. The plan ID is the `sender_batch_id`, so a retry cannot pay twice. Item statuses are polled and shown per partner |
+| Webhooks + postback verification (optional) | `src/app/api/webhooks/paypal/route.ts`, `src/lib/payout-webhook.ts` | Verified payout events trigger a fresh batch read, so late refunds or reversals are recorded |
+| Orders API v2 (sandbox) | `src/lib/paypal.ts`, `src/app/api/paypal/*` | Create and capture a payment. Built in the foundation and tested; not part of the relief flow shown in the demo |
 
 ## How AI is used
 
 | Model / AI service | Where it is used | Why |
 | --- | --- | --- |
-| Any OpenAI-compatible model, set by `AI_MODEL` | `src/lib/ai.ts`, `src/app/api/ai/route.ts` | Chat completions behind a server-side route |
-| Same model, structured output | `chatJson` in `src/lib/ai.ts` | Every AI feature gets JSON checked by a hand-written validator, with one retry and a template fallback. Outside text is wrapped as data so instructions inside it are ignored |
-| Same model, bulletin reader | `src/lib/ai-bulletin.ts`, `POST /api/bulletins/read` | Reads Vietnamese warning bulletins into provinces, hazard, warning level, valid time, rainfall and wind, each with a verbatim quote. Code checks every quote against the bulletin and marks anything it cannot find as needs review. Readings are evidence for the reviewer and never change who is paid |
+| **Meta Model API, `muse-spark-1.3`** (any OpenAI-compatible model works, set by `AI_BASE_URL` / `AI_MODEL`) | `src/lib/ai-bulletin.ts`, `POST /api/bulletins/read` | Reads Vietnamese warning bulletins into provinces, hazard, warning level, valid time, rainfall and wind, each with a verbatim quote. Code checks every quote against the bulletin. Readings are evidence for the reviewer and never change who is paid |
+| Same model, structured output | `chatJson` in `src/lib/ai.ts` | JSON checked by a hand-written validator, one retry with the error, then a fallback. Bulletin text is wrapped as `<data>` so instructions inside it are ignored |
+| No key: pattern-matching reader | `mockReading` in `src/lib/ai-bulletin.ts` | Judges without a key still see evidence, through the same quote check |
+
+On the 3 sample bulletins, `muse-spark-1.3` returned 16 values, all with quotes found verbatim in the text and none invented; it left 2 fields empty where the bulletin gave no clear value.
+
+**AI tools used to build this:** Claude Code and OpenAI Codex helped write code, tests and docs. Commits they contributed to carry a `Co-authored-by` trailer. Every change went through a pull request, lint, typecheck, 184 unit tests and CI.
 
 ## Architecture
 
@@ -106,6 +154,19 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+### Mock mode and keys
+
+Every key is optional. Whatever is missing runs in mock mode, shown by a yellow badge in the header:
+
+| Missing | What happens instead |
+| --- | --- |
+| `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | Payouts return a `MOCK-BATCH-` ID; the first status read is pending, the next is received |
+| `AI_API_KEY` | Bulletins are read by a pattern-matching reader, through the same quote check, and labeled as a sample |
+
+To use the real sandbox, create an app in the [PayPal developer dashboard](https://developer.paypal.com/dashboard/applications/sandbox) and copy its client ID and secret. Its default **business** sandbox account sends the payouts. For `PARTNER_PAYPAL_EMAILS`, copy three **personal** sandbox account emails from **Sandbox accounts** in the same dashboard; without them, payouts go to `@example.com` addresses and end as "Not claimed". Judges do not need a PayPal login: the demo pays partners, so no buyer account is involved.
+
+To host it yourself, see [docs/deploy.md](docs/deploy.md) (one Render web service).
 
 ### Useful commands
 
