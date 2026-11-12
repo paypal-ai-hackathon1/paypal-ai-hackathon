@@ -5,6 +5,7 @@ import type { BulletinReading, HouseholdFlag, Plan, PublicHousehold, ReadingFiel
 import { formatUsd, splitOnQuote } from "@/lib/format";
 import type { PlanReview, ReviewBulletin } from "@/lib/plan-review";
 import { formatVietnamTime, METRIC_LABEL } from "@/lib/replay";
+import { ApprovalPanel } from "./approval-panel";
 
 const STATUS_LABEL: Record<Plan["status"], string> = {
   in_review: "In review",
@@ -223,6 +224,13 @@ export function PlanReviewScreen({ initial }: { initial: PlanReview }) {
               <dd className="mt-1 break-all font-mono">{plan.planHash.slice(0, 16)}</dd>
               <dd className="mt-1">Approval must match this fingerprint, so you approve exactly what you see.</dd>
             </dl>
+            <ApprovalPanel
+              plan={plan}
+              onPlan={setPlan}
+              partnerName={(id) => partners.find((p) => p.id === id)?.name ?? id}
+              ruleVersion={rule?.version ?? null}
+              householdCount={householdCount}
+            />
           </div>
         </aside>
       </div>
