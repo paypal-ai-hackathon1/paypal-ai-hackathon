@@ -27,6 +27,7 @@ The product idea is not public yet. This repository currently holds the foundati
 | --- | --- | --- |
 | Any OpenAI-compatible model, set by `AI_MODEL` | `src/lib/ai.ts`, `src/app/api/ai/route.ts` | Chat completions behind a server-side route |
 | Same model, structured output | `chatJson` in `src/lib/ai.ts` | Every AI feature gets JSON checked by a hand-written validator, with one retry and a template fallback. Outside text is wrapped as data so instructions inside it are ignored |
+| Same model, bulletin reader | `src/lib/ai-bulletin.ts`, `POST /api/bulletins/read` | Reads Vietnamese warning bulletins into provinces, hazard, warning level, valid time, rainfall and wind, each with a verbatim quote. Code checks every quote against the bulletin and marks anything it cannot find as needs review. Readings are evidence for the reviewer and never change who is paid |
 
 ## Architecture
 
@@ -52,6 +53,7 @@ src/
       plans/[id]/approve/route.ts  approve once and send the Payouts batch
       plans/[id]/status/route.ts   poll PayPal and reconcile each partner's status
       webhooks/paypal/route.ts     verify PayPal events and refresh their batch
+      bulletins/read/route.ts      AI reads a bulletin; every quote is checked against the text
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -67,6 +69,7 @@ src/
     payout-webhook.ts         verified, deduplicated payout event handling
     plan-review.ts            everything the review screen shows, gathered on the server
     format.ts                 client-safe money and quote-matching helpers
+    ai-bulletin.ts            bulletin reader: AI values with verbatim quotes, checked by code
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox

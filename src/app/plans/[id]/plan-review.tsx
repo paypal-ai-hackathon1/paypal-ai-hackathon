@@ -282,7 +282,40 @@ const READING_FIELDS: { key: keyof Omit<BulletinReading, "bulletinId" | "readAt"
 ];
 
 function BulletinEvidence({ bulletin }: { bulletin: ReviewBulletin }) {
-  const { reading } = bulletin;
+  const [reading, setReading] = useState(bulletin.reading);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function read() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/bulletins/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bulletinId: bulletin.id }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { reading?: BulletinReading; error?: string };
+      if (res.ok && data.reading) setReading(data.reading);
+      else setError(data.error ?? "The AI reading failed. Read the bulletin text directly.");
+    } catch {
+      setError("Network error. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const readButton = (
+    <button
+      type="button"
+      onClick={read}
+      disabled={busy}
+      className="self-start rounded-md border border-accent px-3 py-1 text-xs font-semibold text-accent disabled:opacity-50"
+    >
+      {busy ? "Reading…" : reading ? "Read again" : "Read with AI"}
+    </button>
+  );
+
   return (
     <article className="grid gap-4 rounded-md border border-line bg-surface p-4 md:grid-cols-2">
       <div className="min-w-0">
@@ -294,19 +327,27 @@ function BulletinEvidence({ bulletin }: { bulletin: ReviewBulletin }) {
           {bulletin.text}
         </p>
       </div>
-      <div className="min-w-0">
+      <div className="flex min-w-0 flex-col gap-2">
         {reading ? (
           <dl className="flex flex-col gap-2">
             {READING_FIELDS.map(({ key, label }) => (
               <ReadingValue key={key} label={label} field={reading[key]} source={bulletin.text} />
             ))}
-            {reading.mock && <p className="text-xs text-muted">Sample reading: no AI key is set.</p>}
+            {reading.mock && (
+              <p className="text-xs text-muted">Sample reading by pattern matching: no AI key is set.</p>
+            )}
           </dl>
         ) : (
           <p className="rounded-md border border-dashed border-line p-3 text-sm text-muted">
             Not read by AI yet. The source text is shown so a person can read it directly.
           </p>
         )}
+        {error && (
+          <p role="alert" className="text-xs text-alert">
+            {error}
+          </p>
+        )}
+        {readButton}
       </div>
     </article>
   );
