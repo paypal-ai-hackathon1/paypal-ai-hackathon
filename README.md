@@ -1,6 +1,6 @@
 # Early Relief
 
-[![CI](https://github.com/DucPhamNgoc08/paypal-ai-hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/DucPhamNgoc08/paypal-ai-hackathon/actions/workflows/ci.yml)
+[![CI](https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon/actions/workflows/ci.yml)
 
 **Get cash to families before the flood, not after it.**
 
@@ -8,7 +8,7 @@ Early Relief is anticipatory flood cash for Vietnam. A weather forecast crosses 
 
 Entry for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/).
 
-- **Hosted demo:** _link added after deploy_
+- **Hosted demo:** https://early-relief.onrender.com (free instance: the first visit after a quiet period can take up to a minute to wake up)
 - **Video (under 3 min):** _link added after upload_
 
 The demo replays **Typhoon Yagi** (September 2024, northern Vietnam) with simulated forecasts, bulletins, partners and households. Everything runs on the **PayPal sandbox**; no real money moves.
@@ -50,7 +50,9 @@ No account or key is needed to try the hosted demo. Locally, the app runs withou
 | 2026-11-10 | OAuth token carries the Payouts scope | OK |
 | 2026-11-10 | $1.00 Payouts batch to a sandbox personal account (`npm run check:payouts`) | Item `SUCCESS` within 120 s |
 | 2026-11-10 | Payout to an address with no PayPal account | Item `UNCLAIMED` (`RECEIVER_UNREGISTERED`), funds return after 30 days |
-| 2026-11-12 | Full flow in the app: create plan, exclude, stale-hash approval refused (409), approval, polling to `paid` | OK in mock mode; repeated on the hosted sandbox build before recording |
+| 2026-11-12 | Full flow in the app: create plan, exclude, stale-hash approval refused (409), double approval sends one batch, polling to `paid` | OK in mock mode |
+| 2026-11-12 | Hosted demo, real sandbox: AI reading with `muse-spark-1.3`, approval of the $640 Yagi plan | Batch `W8MT56DFPU89U`: all 3 partner items `PENDING` after 15 s, `SUCCESS` after 30 s, plan `paid` |
+| 2026-11-12 | Hosted demo before partner sandbox emails were set | Batch `TJEYRQSPCUTP4`: items `UNCLAIMED`, shown as "Not claimed" and "Needs attention", as designed |
 
 ### Can partners in Vietnam receive PayPal Payouts?
 
@@ -146,7 +148,7 @@ AGENTS.md, CLAUDE.md          workflow and rules for contributors and AI coding 
 ### Run it
 
 ```bash
-git clone https://github.com/DucPhamNgoc08/paypal-ai-hackathon.git
+git clone https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon.git
 cd paypal-ai-hackathon
 npm install
 cp .env.example .env.local   # optional, fill in keys

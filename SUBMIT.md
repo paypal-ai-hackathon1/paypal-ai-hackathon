@@ -73,8 +73,8 @@ Payouts go to registered partner organisations, which hand cash to households. T
 **Built with (tags):** nextjs, react, typescript, tailwindcss, paypal, paypal-payouts, meta-model-api, llm, vitest, render
 
 **Links:**
-- Public repo: https://github.com/DucPhamNgoc08/paypal-ai-hackathon
-- Hosted demo: _add the Render URL_
+- Public repo: https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon
+- Hosted demo: https://early-relief.onrender.com
 - YouTube video: _add the link_
 
 **Testing instructions**
