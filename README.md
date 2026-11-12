@@ -70,7 +70,8 @@ src/
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
-docs/                         architecture and design notes
+docs/                         architecture, deploy and design notes
+render.yaml                   Render Blueprint for the hosted demo (one instance)
 SUBMIT.md                     Devpost submission kit and checklist
 .github/workflows/ci.yml      CI: lint, typecheck, tests and build on every push
 .husky/                       git hooks: lint on commit, typecheck + tests on push
