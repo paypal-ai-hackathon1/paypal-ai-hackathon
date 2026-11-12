@@ -23,6 +23,7 @@ import type {
 } from "./domain";
 import { centsToAmount, createPayoutBatch, getPayoutBatch, type PayoutBatch } from "./paypal";
 import { mergeItemStatus, planStatusFor } from "./payout-status";
+import { checkHouseholds, type CheckResult, withTemplates } from "./flags";
 import { calculatePlanItems, evaluateRule, planTotalCents, UnlockedRuleError } from "./rules";
 import { getStore, newId, toPublicHousehold, type StoreState } from "./store";
 
@@ -138,7 +139,7 @@ export type PlanView = {
   partners: PublicPartner[];
   /** Households in the plan, excluded ones included. Masked phone, no receipt code. */
   households: PublicHousehold[];
-  /** Review notes from the suspicious-household checks (#13). Empty until those checks exist. */
+  /** Review notes from the deterministic household checks, with template explanations. */
   flags: HouseholdFlag[];
   counts: {
     householdsConfirmed: number;
@@ -146,6 +147,14 @@ export type PlanView = {
     callbackMismatches: number;
   };
 };
+
+/** The plan and the household checks for everyone in it, excluded households included. */
+export function getPlanChecks(planId: string): { plan: Plan; results: CheckResult[] } {
+  const store = getStore();
+  const plan = findPlan(store, planId);
+  const householdIds = new Set([...plan.items.flatMap((i) => i.householdIds), ...plan.excludedHouseholdIds]);
+  return { plan, results: checkHouseholds(store.households.filter((h) => householdIds.has(h.id))) };
+}
 
 /** Everything the review screen needs about one plan, with server-only fields left out. */
 export function getPlanView(planId: string): PlanView {
@@ -164,7 +173,7 @@ export function getPlanView(planId: string): PlanView {
       .filter((p) => partnerIds.has(p.id))
       .map(({ id, name, provinceId, contactName }) => ({ id, name, provinceId, contactName })),
     households: households.map(toPublicHousehold),
-    flags: [],
+    flags: withTemplates(checkHouseholds(households)),
     counts: {
       householdsConfirmed: new Set(confirmations.map((c) => c.householdId)).size,
       callbacksSampled: callbacks.length,
