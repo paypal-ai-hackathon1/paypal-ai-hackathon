@@ -26,7 +26,38 @@ export function PlanReviewScreen({ initial }: { initial: PlanReview }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { rule, partners, households, flags, provinces, bulletins } = initial;
+  const [flags, setFlags] = useState(initial.flags);
+  const [summary, setSummary] = useState<{ text: string; source: "ai" | "template"; mock: boolean } | null>(null);
+  const [explaining, setExplaining] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
+
+  const { rule, partners, households, provinces, bulletins } = initial;
+  const flaggedCount = new Set(flags.map((f) => f.householdId)).size;
+
+  async function explain() {
+    setExplaining(true);
+    setExplainError(null);
+    try {
+      const res = await fetch(`/api/plans/${plan.id}/explain`, { method: "POST" });
+      const data = (await res.json().catch(() => ({}))) as {
+        flags?: HouseholdFlag[];
+        summary?: string;
+        source?: "ai" | "template";
+        mock?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !data.flags || !data.summary) {
+        setExplainError(data.error ?? "Could not get an explanation. The notes below still apply.");
+        return;
+      }
+      setFlags(data.flags);
+      setSummary({ text: data.summary, source: data.source ?? "template", mock: Boolean(data.mock) });
+    } catch {
+      setExplainError("Network error. Try again.");
+    } finally {
+      setExplaining(false);
+    }
+  }
   const provinceName = (id: string) => provinces.find((p) => p.id === id)?.name ?? id;
   const flagsFor = (id: string) => flags.filter((f) => f.householdId === id);
   const editable = plan.status === "in_review";
@@ -158,6 +189,41 @@ export function PlanReviewScreen({ initial }: { initial: PlanReview }) {
                 This plan is {STATUS_LABEL[plan.status].toLowerCase()}, so its households can no longer change.
               </p>
             )}
+            <div className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm">
+                  <strong>{flaggedCount} households</strong> have review notes from automatic checks (same phone, same
+                  address, registration bursts). Notes never exclude anyone: you decide.
+                </p>
+                <button
+                  type="button"
+                  onClick={explain}
+                  disabled={explaining}
+                  className="shrink-0 rounded-md border border-accent px-3 py-1 text-xs font-semibold text-accent disabled:opacity-50"
+                >
+                  {explaining ? "Explaining…" : summary ? "Explain again" : "Explain with AI"}
+                </button>
+              </div>
+              {summary && (
+                <p className="rounded-md bg-accent-soft px-3 py-2 text-sm">
+                  {summary.text}{" "}
+                  <span className="text-xs text-muted">
+                    (
+                    {summary.source === "ai"
+                      ? "written by AI from IDs and amounts only; amounts are checked against the plan"
+                      : summary.mock
+                        ? "template: no AI key is set"
+                        : "template: AI was unavailable"}
+                    )
+                  </span>
+                </p>
+              )}
+              {explainError && (
+                <p role="alert" className="text-xs text-alert">
+                  {explainError}
+                </p>
+              )}
+            </div>
             {partners.map((partner) => {
               const item = plan.items.find((i) => i.partnerId === partner.id);
               const included = households.filter((h) => item?.householdIds.includes(h.id));

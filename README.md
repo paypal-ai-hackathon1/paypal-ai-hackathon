@@ -56,6 +56,7 @@ src/
       webhooks/paypal/route.ts     verify PayPal events and refresh their batch
       bulletins/read/route.ts      AI reads a bulletin; every quote is checked against the text
       demo/reset/route.ts          start the demo over from a fresh scenario
+      plans/[id]/explain/route.ts  AI explains the household flags and summarizes the plan
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
@@ -73,6 +74,8 @@ src/
     format.ts                 client-safe money and quote-matching helpers
     ai-bulletin.ts            bulletin reader: AI values with verbatim quotes, checked by code
     payout-labels.ts          plain-language payout statuses and polling rules
+    flags.ts                  household checks: same phone, same address, registration bursts
+    ai-flags.ts               AI explains the flags and the plan from IDs and amounts only
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox

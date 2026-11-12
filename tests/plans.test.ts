@@ -355,7 +355,7 @@ describe("getPlanView", () => {
 
     expect(view.partners.map((p) => p.id)).toEqual(["partner-qn", "partner-hp", "partner-tb"]);
     expect(view.households).toHaveLength(32); // excluded households stay visible
-    expect(view.flags).toEqual([]);
+    expect(view.flags.map((f) => `${f.householdId}:${f.kind}`)).toContain("hh-qn-13:duplicate_phone");
     expect(view.counts).toEqual({ householdsConfirmed: 0, callbacksSampled: 0, callbackMismatches: 0 });
     expect(json).not.toMatch(/"phone"|receiptCode|paypalEmail|accessToken|@example\.com|QN-7K2P/);
   });
