@@ -22,7 +22,7 @@
 Early Relief is anticipatory flood cash for Vietnam. A weather forecast crosses a rule that was locked before the season, AI reads the official Vietnamese warning bulletins and quotes its sources, a person reviews and approves the plan once, and **PayPal Payouts** sends the money to local partner organisations, who hand it to registered households before the water arrives.
 
 - **Live demo:** [early-relief.onrender.com](https://early-relief.onrender.com) (free instance: the first visit after a quiet period can take up to a minute to wake up)
-- **Demo video (under 3 min):** [youtu.be/uHITj_zxDDo](https://youtu.be/uHITj_zxDDo)
+- **Demo video:** [youtu.be/uHITj_zxDDo](https://youtu.be/uHITj_zxDDo)
 - **Hackathon event:** [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/)
 - **Hackathon submission:** [Early Relief on Devpost](https://devpost.com/software/early-relief)
 - **Architecture:** [docs/architecture.md](docs/architecture.md)
