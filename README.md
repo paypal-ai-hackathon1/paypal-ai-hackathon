@@ -34,7 +34,7 @@ Typhoon Yagi made landfall in northern Vietnam on 7 September 2024. Warnings of 
 
 ## Try it
 
-1. Open the hosted demo (or run it locally, below).
+1. Open the hosted demo, or follow the local setup instructions below.
 2. Press **Start Yagi replay** and watch forecasts and bulletins arrive. When the plan is ready, press **Review the payout plan**.
 3. On the review screen, press **Read with AI** on a bulletin and compare each value with the highlighted quote.
 4. **Exclude** a household and watch the partner total and plan total drop.
