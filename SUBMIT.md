@@ -43,7 +43,7 @@ Payouts go to registered partner organisations, which hand cash to households. T
   - The same model explains household flags for the reviewer. It only sees household IDs, check results and amounts, and a summary that mentions an amount not in the plan is replaced by a template.
   - Without a key, a pattern-matching reader produces the same shape through the same quote check, so the demo works for anyone.
 - **AI tools used to build it:** Claude Code and OpenAI Codex helped write code, tests and docs. Their commits carry `Co-authored-by` trailers. Every change went through a pull request with lint, typecheck, unit tests (196) and CI.
-- **Sponsor tools:** none.
+- **Sponsor tools:** Render (hosting, deployed from `render.yaml`).
 
 **Challenges we ran into**
 
