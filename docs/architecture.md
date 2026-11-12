@@ -43,6 +43,7 @@ Each integration checks for its own credentials. When they are missing:
 | Integration | Behaviour without credentials |
 | --- | --- |
 | PayPal | `createOrder` returns a `MOCK-` id whose approve URL skips PayPal and goes straight to the return route; `captureOrder` returns `COMPLETED` |
+| PayPal Payouts | `createPayoutBatch` returns a `MOCK-BATCH-` id; `getPayoutBatch` reports `PENDING` on the first read and `SUCCESS` after that |
 | AI | `chat` echoes the prompt back with a `[mock AI]` prefix |
 
 This keeps the app runnable for anyone who clones the repo without keys, including judges.

@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+/* Palette: estuary water blues with a storm-warning amber for "rule met". */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f3f6f6;
+  --foreground: #12222a;
+  --surface: #ffffff;
+  --muted: #55676e;
+  --line: #d3dee0;
+  --accent: #0c5d70;
+  --accent-foreground: #ffffff;
+  --accent-soft: #e0eef1;
+  --alert: #a14d06;
+  --alert-soft: #fcefdc;
+  --ok: #1d7049;
+  --ok-soft: #e1f2e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0e181c;
+    --foreground: #e3ecee;
+    --surface: #162328;
+    --muted: #9aadb3;
+    --line: #2c3e45;
+    --accent: #63c2d6;
+    --accent-foreground: #08161a;
+    --accent-soft: #173640;
+    --alert: #f2b265;
+    --alert-soft: #3a2a14;
+    --ok: #74d3a5;
+    --ok-soft: #15342a;
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
