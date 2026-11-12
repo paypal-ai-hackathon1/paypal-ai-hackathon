@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BulletinReading, HouseholdFlag, Plan, PublicHousehold, ReadingField } from "@/lib/domain";
-import { formatUsd, splitOnQuote } from "@/lib/format";
+import { formatUsd, planErrorMessage, splitOnQuote } from "@/lib/format";
 import type { PlanReview, ReviewBulletin } from "@/lib/plan-review";
 import { formatVietnamTime, METRIC_LABEL } from "@/lib/replay";
 import { ApprovalPanel } from "./approval-panel";
@@ -44,7 +44,7 @@ export function PlanReviewScreen({ initial }: { initial: PlanReview }) {
       const data = (await res.json().catch(() => ({}))) as { plan?: Plan; error?: string };
       // Totals always come from the server, which recalculates them with the rules engine.
       if (data.plan) setPlan(data.plan);
-      if (!res.ok) setError(data.error ?? "Could not exclude this household. Try again.");
+      if (!res.ok) setError(planErrorMessage(res.status, data.error, "Could not exclude this household. Try again."));
     } catch {
       setError("Network error. Check your connection and try again.");
     } finally {

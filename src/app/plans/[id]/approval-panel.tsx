@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Plan } from "@/lib/domain";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, planErrorMessage } from "@/lib/format";
 import { MAX_POLLS, PAYOUT_STATUS_TEXT, payoutNeedsAttention, pollDelayMs, shouldPoll } from "@/lib/payout-labels";
 
 type Props = {
@@ -71,7 +71,7 @@ export function ApprovalPanel({ plan, onPlan, partnerName, ruleVersion, househol
         setConfirming(false);
         setPolls(0);
       } else {
-        setError(data.error ?? "The approval did not go through. Try again.");
+        setError(planErrorMessage(res.status, data.error, "The approval did not go through. Try again."));
         // A stale plan comes back with its new totals: close the form so the reviewer checks them.
         if (res.status === 409) setConfirming(false);
       }

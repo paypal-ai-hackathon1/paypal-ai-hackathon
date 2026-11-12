@@ -105,3 +105,15 @@ describe("getPlanReview", () => {
     expect(() => review.getPlanReview("plan-missing")).toThrow(plans.PlanError);
   });
 });
+
+describe("planErrorMessage", () => {
+  it("explains a 404 as a cleared demo plan and keeps the server message otherwise", async () => {
+    const { planErrorMessage, STALE_PLAN_MESSAGE } = await import("@/lib/format");
+    expect(planErrorMessage(404, "Unknown plan", "fallback")).toBe(STALE_PLAN_MESSAGE);
+    expect(STALE_PLAN_MESSAGE).toMatch(/reset or restarted/);
+    expect(planErrorMessage(409, "The plan changed after you opened it.", "fallback")).toBe(
+      "The plan changed after you opened it.",
+    );
+    expect(planErrorMessage(500, undefined, "fallback")).toBe("fallback");
+  });
+});

@@ -27,3 +27,16 @@ export function splitOnQuote(text: string, quote: string | null): QuoteSplit | n
     after: text.slice(match.index + match[0].length),
   };
 }
+
+/**
+ * Shown when the server no longer has the plan on screen. The demo keeps plans in memory, so a
+ * "Reset demo" by anyone, a redeploy or a sleeping free instance clears them.
+ */
+export const STALE_PLAN_MESSAGE =
+  "This plan is no longer on the server: the demo was reset or restarted. Go back to the replay and press “Review the payout plan” to start a new one.";
+
+/** The message to show for a failed plan request: the stale-plan message for a 404, else the server's. */
+export function planErrorMessage(status: number, serverMessage: string | undefined, fallback: string): string {
+  if (status === 404) return STALE_PLAN_MESSAGE;
+  return serverMessage ?? fallback;
+}
