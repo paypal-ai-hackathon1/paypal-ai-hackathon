@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatVietnamTime, METRIC_LABEL, type Replay, type ReplayEvent } from "@/lib/replay";
+import { StartReviewButton } from "./start-review-button";
 
 const STEP_MS = 1800;
 
@@ -129,13 +129,11 @@ export function ReplayTimeline({ replay }: { replay: Replay }) {
             ))}
           </div>
 
-          {planEvent && (
-            <Link
-              href="/review"
-              className="rounded-md bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              Review the payout plan
-            </Link>
+          {planEvent && replay.rule && (
+            <StartReviewButton
+              ruleId={replay.rule.id}
+              className="w-full rounded-md bg-accent px-4 py-3 text-center text-sm font-semibold text-accent-foreground hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            />
           )}
         </aside>
       </div>
@@ -261,9 +259,14 @@ function EventCard({ event, latest, replay }: { event: ReplayEvent; latest: bool
         {names.join(", ")}: {event.householdCount} registered households through {event.partnerCount} local partners.
         Nothing is sent until an organizer approves it.
       </p>
-      <Link href="/review" className="mt-3 inline-block text-sm font-semibold text-accent underline underline-offset-4">
-        Review the payout plan
-      </Link>
+      {replay.rule && (
+        <div className="mt-3">
+          <StartReviewButton
+            ruleId={replay.rule.id}
+            className="text-left text-sm font-semibold text-accent underline underline-offset-4"
+          />
+        </div>
+      )}
     </li>
   );
 }

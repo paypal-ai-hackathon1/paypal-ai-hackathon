@@ -37,6 +37,9 @@ src/
   app/
     page.tsx                  landing page
     replay-timeline.tsx       step-by-step scenario replay (client)
+    start-review-button.tsx   creates the plan for the locked rule and opens its review
+    plans/[id]/               plan review: rule and forecasts, AI readings beside their source
+                              text, per-partner totals, flagged households and Exclude
     api/
       health/route.ts         which integrations are live (no secrets)
       ai/route.ts             AI endpoint
@@ -62,6 +65,8 @@ src/
     plans.ts                  plan lifecycle: create, exclude, approve once (plan hash, cap)
     payout-status.ts          client-safe status merging and needs-attention statuses
     payout-webhook.ts         verified, deduplicated payout event handling
+    plan-review.ts            everything the review screen shows, gathered on the server
+    format.ts                 client-safe money and quote-matching helpers
 tests/                        unit tests (no network)
 scripts/check-sandbox.mjs     verifies real PayPal sandbox + AI credentials
 scripts/check-payouts.mjs     sends a test Payouts batch on the sandbox
