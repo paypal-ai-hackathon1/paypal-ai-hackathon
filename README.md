@@ -52,6 +52,7 @@ src/
       plans/[id]/approve/route.ts  approve once and send the Payouts batch
       plans/[id]/status/route.ts   poll PayPal and reconcile each partner's status
       webhooks/paypal/route.ts     verify PayPal events and refresh their batch
+      demo/reset/route.ts          start the demo over from a fresh scenario
   data/scenarios/             replay fixtures (Typhoon Yagi, simulated households)
   lib/
     env.ts                    config + mock-mode detection
