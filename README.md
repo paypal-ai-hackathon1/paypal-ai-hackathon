@@ -75,7 +75,7 @@ PayPal's own pages list Vietnam as eligible for Payouts with "send, receive and 
 
 On the 3 sample bulletins, `muse-spark-1.3` returned 16 values, all with quotes found verbatim in the text and none invented; it left 2 fields empty where the bulletin gave no clear value.
 
-**AI tools used to build this:** Claude Code and OpenAI Codex helped write code, tests and docs. Commits they contributed to carry a `Co-authored-by` trailer. Every change went through a pull request, lint, typecheck, 178 unit tests and CI.
+**AI tools used to build this:** Claude Code and OpenAI Codex helped write code, tests and docs. Commits they contributed to carry a `Co-authored-by` trailer. Every change went through a pull request, lint, typecheck, 184 unit tests and CI.
 
 ## Architecture
 

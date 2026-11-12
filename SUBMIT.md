@@ -41,7 +41,7 @@ Payouts go to registered partner organisations, which hand cash to households. T
   - **Meta Model API, `muse-spark-1.3`**, through its OpenAI-compatible chat completions endpoint. It reads Vietnamese bulletins into structured JSON with a quote per value. Any OpenAI-compatible model can be swapped in with `AI_BASE_URL` and `AI_MODEL`.
   - A `chatJson` helper validates every reply with a hand-written validator, retries once with the error, and fails closed. Bulletin text is wrapped as `<data>` with a policy that instructions inside it are ignored.
   - Without a key, a pattern-matching reader produces the same shape through the same quote check, so the demo works for anyone.
-- **AI tools used to build it:** Claude Code and OpenAI Codex helped write code, tests and docs. Their commits carry `Co-authored-by` trailers. Every change went through a pull request with lint, typecheck, unit tests (178) and CI.
+- **AI tools used to build it:** Claude Code and OpenAI Codex helped write code, tests and docs. Their commits carry `Co-authored-by` trailers. Every change went through a pull request with lint, typecheck, unit tests (184) and CI.
 - **Sponsor tools:** none.
 
 **Challenges we ran into**
