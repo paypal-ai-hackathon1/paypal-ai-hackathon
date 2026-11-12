@@ -75,7 +75,7 @@ Payouts go to registered partner organisations, which hand cash to households. T
 **Links:**
 - Public repo: https://github.com/paypal-ai-hackathon1/paypal-ai-hackathon
 - Hosted demo: https://early-relief.onrender.com
-- YouTube video: _add the link_
+- YouTube video: https://youtu.be/uHITj_zxDDo
 
 **Testing instructions**
 

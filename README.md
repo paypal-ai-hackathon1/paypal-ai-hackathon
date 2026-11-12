@@ -9,7 +9,7 @@ Early Relief is anticipatory flood cash for Vietnam. A weather forecast crosses 
 Entry for the [PayPal AI Hackathon 2026](https://paypalaihackathon.devpost.com/).
 
 - **Hosted demo:** https://early-relief.onrender.com (free instance: the first visit after a quiet period can take up to a minute to wake up)
-- **Video (under 3 min):** _link added after upload_
+- **Video (under 3 min):** https://youtu.be/uHITj_zxDDo
 
 The demo replays **Typhoon Yagi** (September 2024, northern Vietnam) with simulated forecasts, bulletins, partners and households. Everything runs on the **PayPal sandbox**; no real money moves.
 
